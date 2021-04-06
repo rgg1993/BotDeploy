@@ -277,39 +277,4 @@ class TeamsConversationBot(TeamsActivityHandler):
         else:
             await turn_context.send_activity("Qué desea usted hacer? ")
 
-    # async def _deploy_job(self, turn_context: TurnContext):
-
-    #     jenkinsUrl = "http://localhost:8080"
-    #     userToken = "112e83c712adbf2bbd9c77b79980230759"
-    #     userName = "rosina"
-    #     jobName = self.on_message_activity(turn_context)
-    #     auth = ("rosina", "112e83c712adbf2bbd9c77b79980230759")
-    #     j = jenkins.Jenkins(jenkinsUrl, username=userName, password=userToken)
-
-    #     job = requests.get(
-    #         "{0:s}/job/{1:s}/api/json".format(
-    #             jenkinsUrl,
-    #             jobName,
-    #         ),
-    #         auth=auth,
-    #     ).json()
-
-    #     next_build_number = job['nextBuildNumber']
-
-    #     next_build_url = "{0:s}/job/{1:s}/{2:d}/api/json".format(
-    #         jenkinsUrl,
-    #         jobName,
-    #         next_build_number,
-    #     )
-
-    #     print("Triggering build: {0:s} #{1:d}".format(jobName,
-    #                                                   next_build_number,
-    #                                                   ))
-
-    #     response = j.build_job(jobName)
-
-    #     build_status = requests.get("{0:s}/job/{1:s}/lastBuild/api/xml?xpath=/*/result".format(
-    #         jenkinsUrl, jobName), auth=auth)
-
-    #     await turn_context.send_activity(f"Jenkins Job: {jobName} finished with status: {build_status.text}")
-    #     await self._message_all_members(turn_context)
+ 
