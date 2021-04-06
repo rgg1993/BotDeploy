@@ -22,20 +22,31 @@ class TeamsConversationBot(TeamsActivityHandler):
         TurnContext.remove_recipient_mention(turn_context.activity)
         text = turn_context.activity.text.strip()
 
-        if "Jenkins Job" in text:
-            await self._message_all_members(turn_context)
-            return
-
         if "Deploy" in text:
             await self._send_jenkins_job_card(turn_context, False)
             return
 
-        if "DRS" in text:
+        if "DRS-Proceed" in text:
+            await self._message_all_members_DRS(turn_context)
             await self._confirmDRS(turn_context)
+            await self._send_card_T_RB(turn_context, False)
             return
 
-        if "RollBack" in text:
+        if "TESTS-Proceed" in text:
+            await self._message_all_members_TESTS(turn_context)
+            await self._confirmTests(turn_context)
+            await self._send_card_FINISH(turn_context, False)
+            return
+
+        if "RB-Proceed" in text:
             await self._rollback(turn_context)
+            await self._message_all_members_ROLLBACK(turn_context)
+            await self._send_card_FINISH(turn_context, False)
+            return
+
+        if "DP-Finish" in text:
+            await self._finish_deployment(turn_context)
+            await self._message_all_members_FINISH(turn_context)
             return
 
         if "TestWebhook" in text:
@@ -65,22 +76,13 @@ class TeamsConversationBot(TeamsActivityHandler):
             CardAction(
                 type=ActionTypes.im_back, title="Deploy", text="Deploy", value="Deploy"
             ),
-            CardAction(
-                type=ActionTypes.im_back, title="DRS", text="DRS", value="DRS"
-            ),
-            CardAction(
-                type=ActionTypes.im_back, title="RollBack", text="RollBack", value="RollBack"
-            ),
-            CardAction(
-                type=ActionTypes.im_back, title="Prueba", text="Prueba", value="Prueba"
-            ),
         ]
 
         await self._send_item_card(turn_context, buttons)
 
     async def _send_item_card(self, turn_context: TurnContext, buttons):
         card = HeroCard(
-            title="Deploy, DRS, Rollback o Pruebas?", text="Elija", buttons=buttons
+            title="Deploy", text="", buttons=buttons
         )
         await turn_context.send_activity(
             MessageFactory.attachment(CardFactory.hero_card(card))
@@ -103,8 +105,8 @@ class TeamsConversationBot(TeamsActivityHandler):
 
 # SELECT ITEM TO DEPLOY
 
-
     async def _send_jenkins_job_card(self, turn_context: TurnContext, isUpdate):
+        # aqui en buttons se debe agregar los nombres de los jobs
         buttons = [
             CardAction(
                 type=ActionTypes.im_back, title="TestPipeline", text="TestPipeline", value="TestPipeline"
@@ -118,7 +120,7 @@ class TeamsConversationBot(TeamsActivityHandler):
 
     async def _select_jenkins_job(self, turn_context: TurnContext, buttons):
         card = HeroCard(
-            title="Select item to deploy", text="", buttons=buttons
+            title="Seleccione el item a deployar", text="", buttons=buttons
         )
         await turn_context.send_activity(
             MessageFactory.attachment(CardFactory.hero_card(card))
@@ -126,7 +128,47 @@ class TeamsConversationBot(TeamsActivityHandler):
 
 # SEND PROACTIVE MESSAGES IN ONE TO ONE CHANNELS
 
-    async def _message_all_members(self, turn_context: TurnContext):
+    async def _message_all_members_Jenkins_Job(self, turn_context: TurnContext):
+        # aquí se podría poner un notify members en el crq, indicando aquellas personas que deben ser notificiadas
+        # en los canales personales
+        team_members = await self._get_paged_members(turn_context)
+        # aqui deberia ir el nombre de la persona que envío el CRQ
+        # pendiente ver con Facu como sería
+        userAllowed = "Maria Garagorry Guerra"
+
+        for member in team_members:
+            if member.name == userAllowed:
+                conversation_reference = TurnContext.get_conversation_reference(
+                    turn_context.activity
+                )
+
+                conversation_parameters = ConversationParameters(
+                    is_group=False,
+                    bot=turn_context.activity.recipient,
+                    members=[member],
+                    tenant_id=turn_context.activity.conversation.tenant_id,
+                )
+
+            async def get_ref(tc1):
+                conversation_reference_inner = TurnContext.get_conversation_reference(
+                    tc1.activity
+                )
+                return await tc1.adapter.continue_conversation(
+                    conversation_reference_inner, send_message, self._app_id
+                )
+
+            async def send_message(tc2: TurnContext):
+                return await tc2.send_activity(
+                    f"{member.name}. Se ha finalizado la ejecución del job de Jenkins, verifique estado en el canal de Teams."
+                )  # pylint: disable = cell-var-from-loop
+
+            await turn_context.adapter.create_conversation(
+                conversation_reference, get_ref, conversation_parameters
+            )
+
+# COMUNICACION INICIDO DRS
+
+    async def _message_all_members_DRS(self, turn_context: TurnContext):
         # aquí se podría poner un notify members en el crq, indicando aquellas personas que deben ser notificiadas
         # en los canales personales
         team_members = await self._get_paged_members(turn_context)
@@ -157,7 +199,7 @@ class TeamsConversationBot(TeamsActivityHandler):
 
                 async def send_message(tc2: TurnContext):
                     return await tc2.send_activity(
-                        f"{member.name}. You've got a new notification in the Deployment Channel."
+                        f"{member.name}. Se inicia DRS."
                     )  # pylint: disable = cell-var-from-loop
 
                 await turn_context.adapter.create_conversation(
@@ -165,7 +207,131 @@ class TeamsConversationBot(TeamsActivityHandler):
                 )
 
 
+# COMUNICACION INICIDO DE PRUEBAS
+
+    async def _message_all_members_TESTS(self, turn_context: TurnContext):
+        # aquí se podría poner un notify members en el crq, indicando aquellas personas que deben ser notificiadas
+        # en los canales personales
+        team_members = await self._get_paged_members(turn_context)
+        # aqui deberia ir el nombre de la persona que envío el CRQ
+        # pendiente ver con Facu como sería
+        userAllowed = "Maria Garagorry Guerra"
+
+        for member in team_members:
+            if member.name == userAllowed:
+                conversation_reference = TurnContext.get_conversation_reference(
+                    turn_context.activity
+                )
+
+                conversation_parameters = ConversationParameters(
+                    is_group=False,
+                    bot=turn_context.activity.recipient,
+                    members=[member],
+                    tenant_id=turn_context.activity.conversation.tenant_id,
+                )
+
+            async def get_ref(tc1):
+                conversation_reference_inner = TurnContext.get_conversation_reference(
+                    tc1.activity
+                )
+                return await tc1.adapter.continue_conversation(
+                    conversation_reference_inner, send_message, self._app_id
+                )
+
+            async def send_message(tc2: TurnContext):
+                return await tc2.send_activity(
+                    f"{member.name}. Se inician las pruebas."
+                )  # pylint: disable = cell-var-from-loop
+
+            await turn_context.adapter.create_conversation(
+                conversation_reference, get_ref, conversation_parameters
+            )
+
+
+# COMUNICACION INICIO DE ROLLBACK
+
+    async def _message_all_members_ROLLBACK(self, turn_context: TurnContext):
+        # aquí se podría poner un notify members en el crq, indicando aquellas personas que deben ser notificiadas
+        # en los canales personales
+        team_members = await self._get_paged_members(turn_context)
+        # aqui deberia ir el nombre de la persona que envío el CRQ
+        # pendiente ver con Facu como sería
+        userAllowed = "Maria Garagorry Guerra"
+
+        for member in team_members:
+            if member.name == userAllowed:
+                conversation_reference = TurnContext.get_conversation_reference(
+                    turn_context.activity
+                )
+
+                conversation_parameters = ConversationParameters(
+                    is_group=False,
+                    bot=turn_context.activity.recipient,
+                    members=[member],
+                    tenant_id=turn_context.activity.conversation.tenant_id,
+                )
+
+            async def get_ref(tc1):
+                conversation_reference_inner = TurnContext.get_conversation_reference(
+                    tc1.activity
+                )
+                return await tc1.adapter.continue_conversation(
+                    conversation_reference_inner, send_message, self._app_id
+                )
+
+            async def send_message(tc2: TurnContext):
+                return await tc2.send_activity(
+                    f"{member.name}. Se inicia proceso de Rollback."
+                )  # pylint: disable = cell-var-from-loop
+
+            await turn_context.adapter.create_conversation(
+                conversation_reference, get_ref, conversation_parameters
+            )
+
+
+# COMUNICACION FINALIZACION DE DEPLOY
+
+    async def _message_all_members_FINISH(self, turn_context: TurnContext):
+        # aquí se podría poner un notify members en el crq, indicando aquellas personas que deben ser notificiadas
+        # en los canales personales
+        team_members = await self._get_paged_members(turn_context)
+        # aqui deberia ir el nombre de la persona que envío el CRQ
+        # pendiente ver con Facu como sería
+        userAllowed = "Maria Garagorry Guerra"
+
+        for member in team_members:
+            if member.name == userAllowed:
+                conversation_reference = TurnContext.get_conversation_reference(
+                    turn_context.activity
+                )
+
+                conversation_parameters = ConversationParameters(
+                    is_group=False,
+                    bot=turn_context.activity.recipient,
+                    members=[member],
+                    tenant_id=turn_context.activity.conversation.tenant_id,
+                )
+
+            async def get_ref(tc1):
+                conversation_reference_inner = TurnContext.get_conversation_reference(
+                    tc1.activity
+                )
+                return await tc1.adapter.continue_conversation(
+                    conversation_reference_inner, send_message, self._app_id
+                )
+
+            async def send_message(tc2: TurnContext):
+                return await tc2.send_activity(
+                    f"{member.name}. Se finaliza el proceso de deploy, por favor verifique el canal."
+                )  # pylint: disable = cell-var-from-loop
+
+            await turn_context.adapter.create_conversation(
+                conversation_reference, get_ref, conversation_parameters
+            )
+
+
 # necesito el get paged memebers para ejecutar la funcion de message members
+
 
     async def _get_paged_members(
         self, turn_context: TurnContext
@@ -202,15 +368,11 @@ class TeamsConversationBot(TeamsActivityHandler):
                 raise
         else:
             if member.name != userAllowed:
-                await turn_context.send_activity(f"Denied. You are not {userAllowed}, you're not allowed to perform this action")
+                await turn_context.send_activity(f"No permitido, usted no es {userAllowed}")
                 await self.deny_permission(turn_context)
-            else:
-                await turn_context.send_activity(f"You are indeed : {member.name}")
-                await self._send_item_card(turn_context)
 
 
 # DEPLOYMENT ITEMS BLOCK
-
 
     async def _run_jenkins_job(self, turn_context: TurnContext):
         TurnContext.remove_recipient_mention(turn_context.activity)
@@ -220,7 +382,7 @@ class TeamsConversationBot(TeamsActivityHandler):
         userToken = ""
         userName = ""
         jobName = turn_context.activity.text.strip()
-        auth = ("", "")
+        auth = ("userName", "userToken")
         j = jenkins.Jenkins(jenkinsUrl, username=userName, password=userToken)
 
         job = requests.get(
@@ -238,11 +400,6 @@ class TeamsConversationBot(TeamsActivityHandler):
             jobName,
             next_build_number,
         )
-
-        print("Triggering build: {0:s} #{1:d}".format(jobName,
-                                                      next_build_number,
-                                                      ))
-
         response = j.build_job(jobName)
 
         build_status = requests.get("{0:s}/job/{1:s}/lastBuild/api/xml?xpath=/*/result".format(
@@ -250,31 +407,94 @@ class TeamsConversationBot(TeamsActivityHandler):
 
         await turn_context.send_activity(
             MessageFactory.text(
-                f"The item {deployItem} will be deployed, on build number #{next_build_number}")
+                f"El job {deployItem} será deployado, build #{next_build_number}")
         )
-        await turn_context.send_activity(f"Jenkins Job: {jobName} finished with status: {build_status.text}")
-        await self._message_all_members(turn_context)
+        await turn_context.send_activity(f"Jenkins Job: {jobName} finalizó con estado de : {build_status.text}")
+        await self._message_all_members_Jenkins_Job(turn_context)
+        await self._send_card_DRS_RB(turn_context, False)
 
-        buildResult = str(build_status.text).lower()
-        buildSuccess = str("success")
 
-        if buildResult == buildSuccess:
-            await turn_context.send_activity("Se confirma inicion de DRS? Escribir SI o NO")
-            await self._confirmDRS(turn_context)
-        else:
-            await self._rollback(turn_context)
+# DRS OR ROLLBACK CARD
+
+
+    async def _send_card_DRS_RB(self, turn_context: TurnContext, isUpdate):
+        buttons = [
+            CardAction(
+                type=ActionTypes.im_back, title="DRS", text="DRS", value="DRS-Proceed"
+            ),
+            CardAction(
+                type=ActionTypes.im_back, title="RollBack", text="RollBack", value="RB-Proceed"
+            ),
+        ]
+
+        await self._send_select_card_DRS_RB(turn_context, buttons)
+
+    async def _send_select_card_DRS_RB(self, turn_context: TurnContext, buttons):
+        card = HeroCard(
+            title="Continuar con DRS o RollBack?", text="", buttons=buttons
+        )
+        await turn_context.send_activity(
+            MessageFactory.attachment(CardFactory.hero_card(card))
+        )
 
     async def _confirmDRS(self, turn_context: TurnContext):
         TurnContext.remove_recipient_mention(turn_context.activity)
         confirmation = turn_context.activity.text.strip()
-        await turn_context.send_activity("Se confirma inicion de DRS")
+        await turn_context.send_activity("Se confirma inicio de DRS")
+
+
+# TESTS OR ROLLBACK CARD
+
+
+    async def _send_card_T_RB(self, turn_context: TurnContext, isUpdate):
+        buttons = [
+            CardAction(
+                type=ActionTypes.im_back, title="Tests", text="Tests", value="TESTS-Proceed"
+            ),
+            CardAction(
+                type=ActionTypes.im_back, title="RollBack", text="RollBack", value="RB-Proceed"
+            ),
+        ]
+
+        await self._send_select_card_T_RB(turn_context, buttons)
+
+    async def _send_select_card_T_RB(self, turn_context: TurnContext, buttons):
+        card = HeroCard(
+            title="Continuar con Tests o RollBack?", text="", buttons=buttons
+        )
+        await turn_context.send_activity(
+            MessageFactory.attachment(CardFactory.hero_card(card))
+        )
+
+    async def _confirmTests(self, turn_context: TurnContext):
+        await turn_context.send_activity("Se confirma inicio de Pruebas")
 
     async def _rollback(self, turn_context: TurnContext):
-        TurnContext.remove_recipient_mention(turn_context.activity)
-        confirmation = turn_context.activity.text.strip().lower()
-        if confirmation == "si":
-            await turn_context.send_activity("Se confirma inicion de Rollback")
-        else:
-            await turn_context.send_activity("Qué desea usted hacer? ")
+        await turn_context.send_activity("Se confirma inicio de Rollback")
 
- 
+
+# FINISH DEPLOYMENT CARD
+
+
+    async def _send_card_FINISH(self, turn_context: TurnContext, isUpdate):
+        buttons = [
+            CardAction(
+                type=ActionTypes.im_back, title="Finalizar", text="Finalizar", value="DP-Finish"
+            ),
+        ]
+
+        await self._send_select_card_FINISH(turn_context, buttons)
+
+    async def _send_select_card_FINISH(self, turn_context: TurnContext, buttons):
+        card = HeroCard(
+            title="Finalizar deployment?", text="", buttons=buttons
+        )
+        await turn_context.send_activity(
+            MessageFactory.attachment(CardFactory.hero_card(card))
+        )
+
+    async def _confirmDRS(self, turn_context: TurnContext):
+        await turn_context.send_activity("Se confirma inicio de DRS")
+
+    async def _finish_deployment(self, turn_context: TurnContext):
+        await turn_context.send_activity("Se finaliza el deployment")
