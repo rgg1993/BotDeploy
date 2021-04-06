@@ -9,6 +9,7 @@
   
   Los datos para correr el Jenkins Jobs fueron borrados, el usuario debe agregar los datos propios para correrlos (userName, userToken, jobName). 
   Además, el Jenkins debe habilitar la ejecución de Jobs a través de la API. 
+  Lo mismo sucede en la parte inicial, donde figuran los ifs. Aqui se deben agregar los mismos strings que envía la funcion _send_jenkins_job_card 
    
    
  
