@@ -22,6 +22,10 @@ class TeamsConversationBot(TeamsActivityHandler):
         TurnContext.remove_recipient_mention(turn_context.activity)
         text = turn_context.activity.text.strip()
 
+        if "AUTH-user" in text:
+            await self._check_permissions(turn_context)
+            return
+
         if "Deploy" in text:
             await self._send_jenkins_job_card(turn_context, False)
             return
@@ -57,19 +61,29 @@ class TeamsConversationBot(TeamsActivityHandler):
             await self._run_jenkins_job(turn_context)
             return
 
-        await self._send_card(turn_context, False)
+        await self._send_permissions_card(turn_context, False)
         return
 
-    async def _mention_activity(self, turn_context: TurnContext):
-        mention = Mention(
-            mentioned=turn_context.activity.from_property,
-            text=f"<at>{turn_context.activity.from_property.name}</at>",
-            type="mention",
+# CHECK PERMISSIONS CARD
+
+    async def _send_permissions_card(self, turn_context: TurnContext, isUpdate):
+        buttons = [
+            CardAction(
+                type=ActionTypes.im_back, title="Verificar Identidad", text="Check", value="AUTH-user"
+            ),
+        ]
+
+        await self._send_permissions_select_card(turn_context, buttons)
+
+    async def _send_permissions_select_card(self, turn_context: TurnContext, buttons):
+        card = HeroCard(
+            title="Chequea tus permisos", text="", buttons=buttons
+        )
+        await turn_context.send_activity(
+            MessageFactory.attachment(CardFactory.hero_card(card))
         )
 
-        reply_activity = MessageFactory.text(f"Hello {mention.text}")
-        reply_activity.entities = [Mention().deserialize(mention.serialize())]
-        await turn_context.send_activity(reply_activity)
+# DEPLOY CARD
 
     async def _send_card(self, turn_context: TurnContext, isUpdate):
         buttons = [
@@ -88,23 +102,7 @@ class TeamsConversationBot(TeamsActivityHandler):
             MessageFactory.attachment(CardFactory.hero_card(card))
         )
 
-    async def _get_member(self, turn_context: TurnContext):
-        TeamsChannelAccount: member = None
-        try:
-            member = await TeamsInfo.get_member(
-                turn_context, turn_context.activity.from_property.id
-            )
-        except Exception as e:
-            if "MemberNotFoundInConversation" in e.args[0]:
-                await turn_context.send_activity("Member not found.")
-            else:
-                raise
-        else:
-            await turn_context.send_activity(f"You are: {member.name}")
-
-
-# SELECT ITEM TO DEPLOY
-
+# JENKINS JOB CARD
     async def _send_jenkins_job_card(self, turn_context: TurnContext, isUpdate):
         # aqui en buttons se debe agregar los nombres de los jobs
         buttons = [
@@ -126,7 +124,7 @@ class TeamsConversationBot(TeamsActivityHandler):
             MessageFactory.attachment(CardFactory.hero_card(card))
         )
 
-# SEND PROACTIVE MESSAGES IN ONE TO ONE CHANNELS
+# NOTIFY UN P2B ABOUT JENKINS JOB FINISH BUILDING
 
     async def _message_all_members_Jenkins_Job(self, turn_context: TurnContext):
         # aquí se podría poner un notify members en el crq, indicando aquellas personas que deben ser notificiadas
@@ -166,7 +164,7 @@ class TeamsConversationBot(TeamsActivityHandler):
                 conversation_reference, get_ref, conversation_parameters
             )
 
-# COMUNICACION INICIDO DRS
+# NOTIFY UN P2B ABOUT DRS BEGIN
 
     async def _message_all_members_DRS(self, turn_context: TurnContext):
         # aquí se podría poner un notify members en el crq, indicando aquellas personas que deben ser notificiadas
@@ -206,8 +204,7 @@ class TeamsConversationBot(TeamsActivityHandler):
                     conversation_reference, get_ref, conversation_parameters
                 )
 
-
-# COMUNICACION INICIDO DE PRUEBAS
+# NOTIFY UN P2B ABOUT TESTS BEGIN
 
     async def _message_all_members_TESTS(self, turn_context: TurnContext):
         # aquí se podría poner un notify members en el crq, indicando aquellas personas que deben ser notificiadas
@@ -248,9 +245,9 @@ class TeamsConversationBot(TeamsActivityHandler):
             )
 
 
-# COMUNICACION INICIO DE ROLLBACK
+# NOTIFY UN P2B ABOUT ROLLBACK BEGIN
 
-    async def _message_all_members_ROLLBACK(self, turn_context: TurnContext):
+   async def _message_all_members_ROLLBACK(self, turn_context: TurnContext):
         # aquí se podría poner un notify members en el crq, indicando aquellas personas que deben ser notificiadas
         # en los canales personales
         team_members = await self._get_paged_members(turn_context)
@@ -288,9 +285,7 @@ class TeamsConversationBot(TeamsActivityHandler):
                 conversation_reference, get_ref, conversation_parameters
             )
 
-
-# COMUNICACION FINALIZACION DE DEPLOY
-
+# NOTIFY UN P2B ABOUT DEPLOY END
     async def _message_all_members_FINISH(self, turn_context: TurnContext):
         # aquí se podría poner un notify members en el crq, indicando aquellas personas que deben ser notificiadas
         # en los canales personales
@@ -332,7 +327,6 @@ class TeamsConversationBot(TeamsActivityHandler):
 
 # necesito el get paged memebers para ejecutar la funcion de message members
 
-
     async def _get_paged_members(
         self, turn_context: TurnContext
     ) -> List[TeamsChannelAccount]:
@@ -368,8 +362,10 @@ class TeamsConversationBot(TeamsActivityHandler):
                 raise
         else:
             if member.name != userAllowed:
-                await turn_context.send_activity(f"No permitido, usted no es {userAllowed}")
-                await self.deny_permission(turn_context)
+                await turn_context.send_activity(f"No permitido, usted es {member.name} no es {userAllowed}")
+            else:
+                await turn_context.send_activity(f"Usted es {userAllowed}, puede proseguir")
+                await self._send_jenkins_job_card(turn_context, False)
 
 
 # DEPLOYMENT ITEMS BLOCK
@@ -381,8 +377,8 @@ class TeamsConversationBot(TeamsActivityHandler):
         jenkinsUrl = "http://localhost:8080"
         userToken = ""
         userName = ""
+        auth = ("", "")
         jobName = turn_context.activity.text.strip()
-        auth = ("userName", "userToken")
         j = jenkins.Jenkins(jenkinsUrl, username=userName, password=userToken)
 
         job = requests.get(
@@ -413,9 +409,7 @@ class TeamsConversationBot(TeamsActivityHandler):
         await self._message_all_members_Jenkins_Job(turn_context)
         await self._send_card_DRS_RB(turn_context, False)
 
-
 # DRS OR ROLLBACK CARD
-
 
     async def _send_card_DRS_RB(self, turn_context: TurnContext, isUpdate):
         buttons = [
@@ -442,9 +436,7 @@ class TeamsConversationBot(TeamsActivityHandler):
         confirmation = turn_context.activity.text.strip()
         await turn_context.send_activity("Se confirma inicio de DRS")
 
-
 # TESTS OR ROLLBACK CARD
-
 
     async def _send_card_T_RB(self, turn_context: TurnContext, isUpdate):
         buttons = [
@@ -472,9 +464,7 @@ class TeamsConversationBot(TeamsActivityHandler):
     async def _rollback(self, turn_context: TurnContext):
         await turn_context.send_activity("Se confirma inicio de Rollback")
 
-
 # FINISH DEPLOYMENT CARD
-
 
     async def _send_card_FINISH(self, turn_context: TurnContext, isUpdate):
         buttons = [
