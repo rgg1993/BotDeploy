@@ -103,7 +103,6 @@ class TeamsConversationBot(TeamsActivityHandler):
         )
 
 # JENKINS JOB CARD
-
     async def _send_jenkins_job_card(self, turn_context: TurnContext, isUpdate):
         # aqui en buttons se debe agregar los nombres de los jobs
         buttons = [
@@ -245,8 +244,10 @@ class TeamsConversationBot(TeamsActivityHandler):
                 conversation_reference, get_ref, conversation_parameters
             )
 
+
 # NOTIFY UN P2B ABOUT ROLLBACK BEGIN
-    async def _message_all_members_ROLLBACK(self, turn_context: TurnContext):
+
+   async def _message_all_members_ROLLBACK(self, turn_context: TurnContext):
         # aquí se podría poner un notify members en el crq, indicando aquellas personas que deben ser notificiadas
         # en los canales personales
         team_members = await self._get_paged_members(turn_context)
@@ -285,7 +286,6 @@ class TeamsConversationBot(TeamsActivityHandler):
             )
 
 # NOTIFY UN P2B ABOUT DEPLOY END
-
     async def _message_all_members_FINISH(self, turn_context: TurnContext):
         # aquí se podría poner un notify members en el crq, indicando aquellas personas que deben ser notificiadas
         # en los canales personales
@@ -323,6 +323,7 @@ class TeamsConversationBot(TeamsActivityHandler):
             await turn_context.adapter.create_conversation(
                 conversation_reference, get_ref, conversation_parameters
             )
+
 
 # necesito el get paged memebers para ejecutar la funcion de message members
 
@@ -365,6 +366,7 @@ class TeamsConversationBot(TeamsActivityHandler):
             else:
                 await turn_context.send_activity(f"Usted es {userAllowed}, puede proseguir")
                 await self._send_jenkins_job_card(turn_context, False)
+
 
 # DEPLOYMENT ITEMS BLOCK
 
