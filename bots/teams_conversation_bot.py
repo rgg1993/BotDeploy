@@ -103,6 +103,7 @@ class TeamsConversationBot(TeamsActivityHandler):
         )
 
 # JENKINS JOB CARD
+
     async def _send_jenkins_job_card(self, turn_context: TurnContext, isUpdate):
         # aqui en buttons se debe agregar los nombres de los jobs
         buttons = [
@@ -127,25 +128,19 @@ class TeamsConversationBot(TeamsActivityHandler):
 # NOTIFY UN P2B ABOUT JENKINS JOB FINISH BUILDING
 
     async def _message_all_members_Jenkins_Job(self, turn_context: TurnContext):
-        # aquí se podría poner un notify members en el crq, indicando aquellas personas que deben ser notificiadas
-        # en los canales personales
         team_members = await self._get_paged_members(turn_context)
         # aqui deberia ir el nombre de la persona que envío el CRQ
         # pendiente ver con Facu como sería
-        userAllowed = "Maria Garagorry Guerra"
-
         for member in team_members:
-            if member.name == userAllowed:
-                conversation_reference = TurnContext.get_conversation_reference(
-                    turn_context.activity
-                )
-
-                conversation_parameters = ConversationParameters(
-                    is_group=False,
-                    bot=turn_context.activity.recipient,
-                    members=[member],
-                    tenant_id=turn_context.activity.conversation.tenant_id,
-                )
+            conversation_reference = TurnContext.get_conversation_reference(
+                turn_context.activity
+            )
+            conversation_parameters = ConversationParameters(
+                is_group=False,
+                bot=turn_context.activity.recipient,
+                members=[member],
+                tenant_id=turn_context.activity.conversation.tenant_id,
+            )
 
             async def get_ref(tc1):
                 conversation_reference_inner = TurnContext.get_conversation_reference(
@@ -157,75 +152,26 @@ class TeamsConversationBot(TeamsActivityHandler):
 
             async def send_message(tc2: TurnContext):
                 return await tc2.send_activity(
-                    f"{member.name}. Se ha finalizado la ejecución del job de Jenkins, verifique estado en el canal de Teams."
+                    f"{member.name}. Se termino el Jenkins Job, verifique estado en canal."
                 )  # pylint: disable = cell-var-from-loop
-
             await turn_context.adapter.create_conversation(
                 conversation_reference, get_ref, conversation_parameters
             )
 
-# NOTIFY UN P2B ABOUT DRS BEGIN
-
-    async def _message_all_members_DRS(self, turn_context: TurnContext):
-        # aquí se podría poner un notify members en el crq, indicando aquellas personas que deben ser notificiadas
-        # en los canales personales
-        team_members = await self._get_paged_members(turn_context)
-        # aqui deberia ir el nombre de la persona que envío el CRQ
-        # pendiente ver con Facu como sería
-        userAllowed = "Maria Garagorry Guerra"
-
-        for member in team_members:
-            if member.name == userAllowed:
-                conversation_reference = TurnContext.get_conversation_reference(
-                    turn_context.activity
-                )
-
-                conversation_parameters = ConversationParameters(
-                    is_group=False,
-                    bot=turn_context.activity.recipient,
-                    members=[member],
-                    tenant_id=turn_context.activity.conversation.tenant_id,
-                )
-
-                async def get_ref(tc1):
-                    conversation_reference_inner = TurnContext.get_conversation_reference(
-                        tc1.activity
-                    )
-                    return await tc1.adapter.continue_conversation(
-                        conversation_reference_inner, send_message, self._app_id
-                    )
-
-                async def send_message(tc2: TurnContext):
-                    return await tc2.send_activity(
-                        f"{member.name}. Se inicia DRS."
-                    )  # pylint: disable = cell-var-from-loop
-
-                await turn_context.adapter.create_conversation(
-                    conversation_reference, get_ref, conversation_parameters
-                )
-
-# NOTIFY UN P2B ABOUT TESTS BEGIN
-
     async def _message_all_members_TESTS(self, turn_context: TurnContext):
-        # aquí se podría poner un notify members en el crq, indicando aquellas personas que deben ser notificiadas
-        # en los canales personales
         team_members = await self._get_paged_members(turn_context)
         # aqui deberia ir el nombre de la persona que envío el CRQ
         # pendiente ver con Facu como sería
-        userAllowed = "Maria Garagorry Guerra"
-
         for member in team_members:
-            if member.name == userAllowed:
-                conversation_reference = TurnContext.get_conversation_reference(
-                    turn_context.activity
-                )
-
-                conversation_parameters = ConversationParameters(
-                    is_group=False,
-                    bot=turn_context.activity.recipient,
-                    members=[member],
-                    tenant_id=turn_context.activity.conversation.tenant_id,
-                )
+            conversation_reference = TurnContext.get_conversation_reference(
+                turn_context.activity
+            )
+            conversation_parameters = ConversationParameters(
+                is_group=False,
+                bot=turn_context.activity.recipient,
+                members=[member],
+                tenant_id=turn_context.activity.conversation.tenant_id,
+            )
 
             async def get_ref(tc1):
                 conversation_reference_inner = TurnContext.get_conversation_reference(
@@ -239,34 +185,24 @@ class TeamsConversationBot(TeamsActivityHandler):
                 return await tc2.send_activity(
                     f"{member.name}. Se inician las pruebas."
                 )  # pylint: disable = cell-var-from-loop
-
             await turn_context.adapter.create_conversation(
                 conversation_reference, get_ref, conversation_parameters
             )
 
-
-# NOTIFY UN P2B ABOUT ROLLBACK BEGIN
-
-   async def _message_all_members_ROLLBACK(self, turn_context: TurnContext):
-        # aquí se podría poner un notify members en el crq, indicando aquellas personas que deben ser notificiadas
-        # en los canales personales
+    async def _message_all_members_DRS(self, turn_context: TurnContext):
         team_members = await self._get_paged_members(turn_context)
         # aqui deberia ir el nombre de la persona que envío el CRQ
         # pendiente ver con Facu como sería
-        userAllowed = "Maria Garagorry Guerra"
-
         for member in team_members:
-            if member.name == userAllowed:
-                conversation_reference = TurnContext.get_conversation_reference(
-                    turn_context.activity
-                )
-
-                conversation_parameters = ConversationParameters(
-                    is_group=False,
-                    bot=turn_context.activity.recipient,
-                    members=[member],
-                    tenant_id=turn_context.activity.conversation.tenant_id,
-                )
+            conversation_reference = TurnContext.get_conversation_reference(
+                turn_context.activity
+            )
+            conversation_parameters = ConversationParameters(
+                is_group=False,
+                bot=turn_context.activity.recipient,
+                members=[member],
+                tenant_id=turn_context.activity.conversation.tenant_id,
+            )
 
             async def get_ref(tc1):
                 conversation_reference_inner = TurnContext.get_conversation_reference(
@@ -278,34 +214,57 @@ class TeamsConversationBot(TeamsActivityHandler):
 
             async def send_message(tc2: TurnContext):
                 return await tc2.send_activity(
-                    f"{member.name}. Se inicia proceso de Rollback."
+                    f"{member.name}. Inicio DRS."
                 )  # pylint: disable = cell-var-from-loop
-
             await turn_context.adapter.create_conversation(
                 conversation_reference, get_ref, conversation_parameters
             )
 
-# NOTIFY UN P2B ABOUT DEPLOY END
+    async def _message_all_members_ROLLBACK(self, turn_context: TurnContext):
+        team_members = await self._get_paged_members(turn_context)
+        # aqui deberia ir el nombre de la persona que envío el CRQ
+        # pendiente ver con Facu como sería
+        for member in team_members:
+            conversation_reference = TurnContext.get_conversation_reference(
+                turn_context.activity
+            )
+            conversation_parameters = ConversationParameters(
+                is_group=False,
+                bot=turn_context.activity.recipient,
+                members=[member],
+                tenant_id=turn_context.activity.conversation.tenant_id,
+            )
+
+            async def get_ref(tc1):
+                conversation_reference_inner = TurnContext.get_conversation_reference(
+                    tc1.activity
+                )
+                return await tc1.adapter.continue_conversation(
+                    conversation_reference_inner, send_message, self._app_id
+                )
+
+            async def send_message(tc2: TurnContext):
+                return await tc2.send_activity(
+                    f"{member.name}. Inicio de Rollback."
+                )  # pylint: disable = cell-var-from-loop
+            await turn_context.adapter.create_conversation(
+                conversation_reference, get_ref, conversation_parameters
+            )
+
     async def _message_all_members_FINISH(self, turn_context: TurnContext):
-        # aquí se podría poner un notify members en el crq, indicando aquellas personas que deben ser notificiadas
-        # en los canales personales
         team_members = await self._get_paged_members(turn_context)
         # aqui deberia ir el nombre de la persona que envío el CRQ
         # pendiente ver con Facu como sería
-        userAllowed = "Maria Garagorry Guerra"
-
         for member in team_members:
-            if member.name == userAllowed:
-                conversation_reference = TurnContext.get_conversation_reference(
-                    turn_context.activity
-                )
-
-                conversation_parameters = ConversationParameters(
-                    is_group=False,
-                    bot=turn_context.activity.recipient,
-                    members=[member],
-                    tenant_id=turn_context.activity.conversation.tenant_id,
-                )
+            conversation_reference = TurnContext.get_conversation_reference(
+                turn_context.activity
+            )
+            conversation_parameters = ConversationParameters(
+                is_group=False,
+                bot=turn_context.activity.recipient,
+                members=[member],
+                tenant_id=turn_context.activity.conversation.tenant_id,
+            )
 
             async def get_ref(tc1):
                 conversation_reference_inner = TurnContext.get_conversation_reference(
@@ -317,9 +276,8 @@ class TeamsConversationBot(TeamsActivityHandler):
 
             async def send_message(tc2: TurnContext):
                 return await tc2.send_activity(
-                    f"{member.name}. Se finaliza el proceso de deploy, por favor verifique el canal."
+                    f"{member.name}. Finaliza deploy."
                 )  # pylint: disable = cell-var-from-loop
-
             await turn_context.adapter.create_conversation(
                 conversation_reference, get_ref, conversation_parameters
             )
@@ -332,17 +290,14 @@ class TeamsConversationBot(TeamsActivityHandler):
     ) -> List[TeamsChannelAccount]:
         paged_members = []
         continuation_token = None
-
         while True:
             current_page = await TeamsInfo.get_paged_members(
                 turn_context, continuation_token, 100
             )
             continuation_token = current_page.continuation_token
             paged_members.extend(current_page.members)
-
             if continuation_token is None:
                 break
-
         return paged_members
 
 # CHECK WHETHER THE USER HAS PERMISSIONS TO EXECUTE OR NOT
@@ -366,7 +321,6 @@ class TeamsConversationBot(TeamsActivityHandler):
             else:
                 await turn_context.send_activity(f"Usted es {userAllowed}, puede proseguir")
                 await self._send_jenkins_job_card(turn_context, False)
-
 
 # DEPLOYMENT ITEMS BLOCK
 
