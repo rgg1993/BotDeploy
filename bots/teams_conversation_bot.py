@@ -4,6 +4,12 @@ from jenkinsapi.jenkins import Jenkins
 import jenkins
 import requests
 import time
+import json
+import re
+import sys
+import os
+import time
+import re
 from typing import List
 from botbuilder.core import CardFactory, TurnContext, MessageFactory
 from botbuilder.core.teams import TeamsActivityHandler, TeamsInfo
@@ -28,7 +34,7 @@ class TeamsConversationBot(TeamsActivityHandler):
 
         if "CRQ" in text:
             await self._get_crq_Number(turn_context)
-            await self._run_jenkins_job(turn_context)
+            await self._check_jenkins_job(turn_context)
             return
 
         if "TESTS-Proceed" in text:
@@ -108,13 +114,14 @@ class TeamsConversationBot(TeamsActivityHandler):
 # DEPLOYMENT ITEMS BLOCK
 # esta seccion tiene funciones de apoyo que dan la carpeta del job, y el jobname, la crq se toma del input del usuario
 
-    async def _run_jenkins_job(self, turn_context: TurnContext):
+    async def _check_jenkins_job(self, turn_context: TurnContext):
+        userAllowed = await self._get_users_allowed(turn_context)
         crqNumber = await self._get_crq_Number(turn_context)
         jobFolder = await self._get_job_Folder(turn_context)
         jobName = await self._get_job_Name(turn_context)
-        userName = ''
-        userToken = ''
-        jenkinsUrl = 'https://jenkins.dev.wallet.prismamp.com'
+        userName = ""
+        userToken = ""
+        jenkinsUrl = ""
         auth = (userName, userToken)
         crqCheck = ""
         job = requests.get(
@@ -127,10 +134,13 @@ class TeamsConversationBot(TeamsActivityHandler):
         ).json()['lastBuild']
 
         lastBuildNumber = job['number']
+        print(job)
 
         while crqCheck != crqNumber:
 
             buildNumber = str(lastBuildNumber)
+
+			# note that the index after parameter may change, depending on the number of parameters the job has
 
             consoleJobs = requests.get(
                 "{0:s}/job/{1:s}/job/{2:s}/{3:s}/api/json".format(
@@ -140,13 +150,26 @@ class TeamsConversationBot(TeamsActivityHandler):
                     buildNumber,
                 ),
                 auth=auth,
-            ).json()['actions'][0]['parameters'][4]
+            ).json()['actions'][0]['parameters'][3]
+
+            # add mention
+
+            mention = Mention(
+                mentioned=turn_context.activity.from_property,
+                text=f"<at>{userAllowed}</at>",
+                type="mention",
+            )
 
             crqCheck = str(consoleJobs["value"])
-
             if crqCheck == crqNumber:
-                await turn_context.send_activity("El build numero {0:s} corresponde con la {1:s}".format(
-                    buildNumber, crqCheck))
+
+                reply_activity_job_status = MessageFactory.text(
+                    "{0:s} El build numero {1:s} corresponde con la {2:s}".format(
+                        mention.text, buildNumber, crqCheck))
+                reply_activity_job_status.entities = [
+                    Mention().deserialize(mention.serialize())]
+                await turn_context.send_activity(reply_activity_job_status)
+
                 correspondingJob = requests.get(
                     "{0:s}/job/{1:s}/job/{2:s}/{3:s}/api/json".format(
                         jenkinsUrl,
@@ -162,12 +185,15 @@ class TeamsConversationBot(TeamsActivityHandler):
                 if buildingStatus == True:
                     await turn_context.send_activity('El job todavia esta ejecutandose')
                     time.sleep(10)
-                    await self._run_jenkins_job(turn_context)
+                    await self._check_jenkins_job(turn_context)
 
                 if buildingStatus == False:
                     resultStatus = correspondingJob['result']
-                    await turn_context.send_activity('El job {0:s}, build #{1:s}, correspondiente a la {2:s} termino con estado de: {3:s}'.format(
-                        jobName, buildNumber, crqNumber, resultStatus))
+                    reply_activity_job_result = MessageFactory.text("{0:s} El job {1:s}, build  #{2:s}, correspondiente a la {3:s} termino con estado de: {4:s}".format(
+                                                                    mention.text, jobName, buildNumber, crqNumber, resultStatus))
+                    reply_activity_job_result.entities = [
+                        Mention().deserialize(mention.serialize())]
+                    await turn_context.send_activity(reply_activity_job_result)
                     await self._send_card_T_RB(turn_context, False)
                     # aqui deberiamos mandarle la notificacion a todos los usuarios
 
@@ -187,7 +213,7 @@ class TeamsConversationBot(TeamsActivityHandler):
         return jobFolder
 
     async def _get_job_Name(self, turn_context: TurnContext):
-        jobName = 'TestSC'
+        jobName = 'lalala'
         return jobName
 
 
@@ -255,7 +281,6 @@ class TeamsConversationBot(TeamsActivityHandler):
             MessageFactory.attachment(CardFactory.hero_card(card))
         )
 
-
 # 4. FINISH DEPLOYMENT CARD
 
     async def _send_card_FINISH(self, turn_context: TurnContext, isUpdate):
@@ -274,6 +299,9 @@ class TeamsConversationBot(TeamsActivityHandler):
         await turn_context.send_activity(
             MessageFactory.attachment(CardFactory.hero_card(card))
         )
+
+# 5. CONFIRMATION OF ACTIONS
+# en esta seccion estan todas as confirmaciones de la accion a ejecutar
 
     async def _confirmDRS(self, turn_context: TurnContext):
         userAllowed = await self._get_users_allowed(turn_context)
@@ -326,7 +354,7 @@ class TeamsConversationBot(TeamsActivityHandler):
         )
 
         reply_activity_DP = MessageFactory.text(
-            f"{mention.text} Se confirma inicio de Rollback")
+            f"{mention.text} Se confirma finalización del deploy ")
         reply_activity_DP.entities = [
             Mention().deserialize(mention.serialize())]
         await turn_context.send_activity(reply_activity_DP)
@@ -395,7 +423,7 @@ class TeamsConversationBot(TeamsActivityHandler):
             async def send_message(tc2: TurnContext):
                 return await tc2.send_activity(
                     f"{member.name}. Se inician las pruebas."
-                )  # pylint: disable = cell-var-from-loop
+                )
             await turn_context.adapter.create_conversation(
                 conversation_reference, get_ref, conversation_parameters
             )
