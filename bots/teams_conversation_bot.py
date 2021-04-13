@@ -29,16 +29,16 @@ class TeamsConversationBot(TeamsActivityHandler):
         text = turn_context.activity.text.strip()
 
         if "CRQ" in text:
-            await self._get_crq_Number(turn_context)
+            await self._get_crq_number(turn_context)
             await self._check_permissions(turn_context)
             return
 
         if "T-Initial-proceed" in text:
-            await self._confirmPrevious(turn_context)
+            await self._confirm_previous(turn_context)
             return
 
         if "T-Initial-OK" in text:
-            await self._confirmDeploy(turn_context)
+            await self._confirm_deploy(turn_context)
             return
 
         if "JOB-Status" in text:
@@ -46,19 +46,19 @@ class TeamsConversationBot(TeamsActivityHandler):
             return
 
         if "TESTS-Proceed" in text:
-          #  await self._message_all_members_TESTS(turn_context)
-            await self._ask_control_confirmTests(turn_context)
+          #  await self._message_all_members_tests(turn_context)
+            await self._ask_control_confirm_tests(turn_context)
             await self._send_card_post_tests(turn_context, False)
             return
 
         if "T-Post-OK" in text:
-            await self._communicate_control_postTests_OK(turn_context)
-            await self._ask_PROD(turn_context)
+            await self._communicate_control_post_tests_ok(turn_context)
+            await self._ask_prod(turn_context)
             return
 
         if "PROD-Proceed" in text:
-            await self._message_all_members_Prod(turn_context)
-            await self._confirmProd(turn_context)
+            await self._message_all_members_prod(turn_context)
+            await self._confirm_prod(turn_context)
             await self._send_card_follow_job_status_prod(turn_context, False)
             return
 
@@ -67,27 +67,28 @@ class TeamsConversationBot(TeamsActivityHandler):
             return
 
         if "T-Prod-OK" in text:
-            await self._confirmFinish(turn_context)
-            await self._send_card_FINISH(turn_context, False)
+            await self._confirm_finish(turn_context)
+            await self._send_card_finish(turn_context, False)
             return
 
         if "RB-Proceed" in text:
-            await self._confirmRollback(turn_context)
-            await self._message_all_members_ROLLBACK(turn_context)
-            await self._send_card_FINISH(turn_context, False)
+            await self._confirm_rollback(turn_context)
+            await self._message_all_members_rollback(turn_context)
+            await self._send_card_finish(turn_context, False)
             return
 
         if "DP-Finish" in text:
             await self._communicate_finish_deploy_streamer(turn_context)
-            await self._message_all_members_FINISH(turn_context)
+            await self._message_all_members_finish(turn_context)
             return
 
-        await self._ask_user_for_CRQ(turn_context)
+        await self._ask_user_for_crq(turn_context)
         return
 
 
 # CHEQUEAR PERMISOS
 # esta secciOn tiene una función de apoyo, que es la que genera el userAllowed
+
 
     async def _check_permissions(self, turn_context: TurnContext):
         TeamsChannelAccount: member = None
@@ -108,7 +109,7 @@ class TeamsConversationBot(TeamsActivityHandler):
                 await turn_context.send_activity(f"No permitido, usted es {member.name} no es {userAllowed}")
             else:
                 await turn_context.send_activity(f"Usted es el streamer {userAllowed}, puede proseguir")
-                await self._send_card_TInitial_proceed(turn_context, False)
+                await self._send_card_test_initial_proceed(turn_context, False)
 
 # genero la función auxiliar para tomar los usuarios con permisos
 
@@ -118,7 +119,7 @@ class TeamsConversationBot(TeamsActivityHandler):
 
 # SOLICITO CRQ
 
-    async def _ask_user_for_CRQ(self, turn_context: TurnContext):
+    async def _ask_user_for_crq(self, turn_context: TurnContext):
         userAllowed = await self._get_users_allowed(turn_context)
         mention = Mention(
             mentioned=turn_context.activity.from_property,
@@ -137,14 +138,14 @@ class TeamsConversationBot(TeamsActivityHandler):
 
     async def _check_jenkins_job_drs(self, turn_context: TurnContext):
         userAllowed = await self._get_users_allowed(turn_context)
-        # await self._get_crq_Number(turn_context)""
+        # await self._get_crq_number(turn_context)""
         crqNumber = "CRQ000012346777744"
         jobFolder = await self._get_job_Folder(turn_context)
         jobName = await self._get_job_Name(turn_context)
         userName = ''
         userToken = ''
         jenkinsUrl = ''
-        auth = (userName,userToken)
+        auth = ('userName', 'userFolder')
         crqCheck = ""
         job = requests.get(
             "{0:s}/job/{1:s}/job/{2:s}/api/json".format(
@@ -212,7 +213,7 @@ class TeamsConversationBot(TeamsActivityHandler):
                     reply_activity_job_result.entities = [
                         Mention().deserialize(mention.serialize())]
                     await turn_context.send_activity(reply_activity_job_result)
-                    await self._send_card_T_RB(turn_context, False)
+                    await self._send_card_tests_rollback(turn_context, False)
                     # aqui deberiamos mandarle la notificacion a todos los usuarios
 
             else:
@@ -222,14 +223,14 @@ class TeamsConversationBot(TeamsActivityHandler):
 
     async def _check_jenkins_job_prod(self, turn_context: TurnContext):
         userAllowed = await self._get_users_allowed(turn_context)
-        # await self._get_crq_Number(turn_context)""
+        # await self._get_crq_number(turn_context)""
         crqNumber = "CRQ000012346777744"
         jobFolder = await self._get_job_Folder(turn_context)
         jobName = await self._get_job_Name(turn_context)
         userName = ''
         userToken = ''
         jenkinsUrl = ''
-        auth = ('userName', 'userToken')
+        auth = (userName, userToken)
         crqCheck = ""
         job = requests.get(
             "{0:s}/job/{1:s}/job/{2:s}/api/json".format(
@@ -297,7 +298,7 @@ class TeamsConversationBot(TeamsActivityHandler):
                     reply_activity_job_result_prod.entities = [
                         Mention().deserialize(mention.serialize())]
                     await turn_context.send_activity(reply_activity_job_result_prod)
-                    await self._ask_control_confirmProdTests(turn_context)
+                    await self._ask_control_confirm_prod_tests(turn_context)
                     await self._send_card_post_tests_prod(turn_context, False)
                     # aqui deberiamos mandarle la notificacion a todos los usuarios
 
@@ -307,16 +308,19 @@ class TeamsConversationBot(TeamsActivityHandler):
                 lastBuildNumber = (lastBuildNumber - 1)
 
   # genero las variables basicas para el bloque de jenkins job
-    async def _get_crq_Number(self, turn_context: TurnContext):
+    async def _get_crq_number(self, turn_context: TurnContext):
         TurnContext.remove_recipient_mention(turn_context.activity)
         crq = turn_context.activity.text.strip()
         return crq
 
-    async def _get_job_Folder(self, turn_context: TurnContext):
+    def _crqNumber(self):
+        crq =
+
+    async def _get_job_folder(self, turn_context: TurnContext):
         jobFolder = 'TestBot'
         return jobFolder
 
-    async def _get_job_Name(self, turn_context: TurnContext):
+    async def _get_job_name(self, turn_context: TurnContext):
         jobName = 'lalala'
         return jobName
 
@@ -326,6 +330,7 @@ class TeamsConversationBot(TeamsActivityHandler):
 
 
 # 1. PERMISSIONS CHECKING
+
 
     async def _send_permissions_card(self, turn_context: TurnContext, isUpdate):
         buttons = [
@@ -347,16 +352,17 @@ class TeamsConversationBot(TeamsActivityHandler):
 
 # 2. ASK FOR INITIAL TESTS
 
-    async def _send_card_TInitial_proceed(self, turn_context: TurnContext, isUpdate):
+
+    async def _send_card_test_initial_proceed(self, turn_context: TurnContext, isUpdate):
         buttons = [
             CardAction(
                 type=ActionTypes.im_back, title="Solicitar Pruebas Inciales", text="Solicitar Pruebas Inciales", value="T-Initial-proceed"
             ),
         ]
 
-        await self._send_select_card_TInitial_proceed(turn_context, buttons)
+        await self._send_select_card_test_initial_proceed(turn_context, buttons)
 
-    async def _send_select_card_TInitial_proceed(self, turn_context: TurnContext, buttons):
+    async def _send_select_card_test_initial_proceed(self, turn_context: TurnContext, buttons):
         card = HeroCard(
             title="Solicitar Pruebas Iniciales", text="", buttons=buttons
         )
@@ -366,16 +372,16 @@ class TeamsConversationBot(TeamsActivityHandler):
 
 # 3. CONFIRM INITIAL TESTS OK
 
-    async def _send_card_confirm_TInitial_ok(self, turn_context: TurnContext, isUpdate):
+    async def _send_card_confirm_test_initial_ok(self, turn_context: TurnContext, isUpdate):
         buttons = [
             CardAction(
                 type=ActionTypes.im_back, title="Pruebas Inciales OK", text="Pruebas Iniciales OK", value="T-Initial-OK"
             ),
         ]
 
-        await self._send_select_card_confirm_TInitial_ok(turn_context, buttons)
+        await self. _send_select_card_confirm_test_initial_ok(turn_context, buttons)
 
-    async def _send_select_card_confirm_TInitial_ok(self, turn_context: TurnContext, buttons):
+    async def _send_select_card_confirm_test_initial_ok(self, turn_context: TurnContext, buttons):
         card = HeroCard(
             title="Pruebas Iniciales OK?", text="", buttons=buttons
         )
@@ -421,7 +427,7 @@ class TeamsConversationBot(TeamsActivityHandler):
 
 # 2. TESTS OR ROLLBACK CARD
 
-    async def _send_card_T_RB(self, turn_context: TurnContext, isUpdate):
+    async def _send_card_tests_rollback(self, turn_context: TurnContext, isUpdate):
         buttons = [
             CardAction(
                 type=ActionTypes.im_back, title="Tests DRS", text="Tests DRS", value="TESTS-Proceed"
@@ -431,9 +437,9 @@ class TeamsConversationBot(TeamsActivityHandler):
             ),
         ]
 
-        await self._send_select_card_T_RB(turn_context, buttons)
+        await self._send_select_card_tests_rollback(turn_context, buttons)
 
-    async def _send_select_card_T_RB(self, turn_context: TurnContext, buttons):
+    async def _send_select_card_tests_rollback(self, turn_context: TurnContext, buttons):
         card = HeroCard(
             title="Continuar con Tests DRS o RollBack?", text="", buttons=buttons
         )
@@ -465,7 +471,7 @@ class TeamsConversationBot(TeamsActivityHandler):
 
 # 3. DRS OR ROLLBACK CARD
 
-    async def _send_card_PROD_RB(self, turn_context: TurnContext, isUpdate):
+    async def _send_card_prod_rb(self, turn_context: TurnContext, isUpdate):
         buttons = [
             CardAction(
                 type=ActionTypes.im_back, title="Prod", text="Prod", value="PROD-Proceed"
@@ -475,9 +481,9 @@ class TeamsConversationBot(TeamsActivityHandler):
             ),
         ]
 
-        await self._send_select_card_PROD_RB(turn_context, buttons)
+        await self._send_select_card_prod_rb(turn_context, buttons)
 
-    async def _send_select_card_PROD_RB(self, turn_context: TurnContext, buttons):
+    async def _send_select_card_prod_rb(self, turn_context: TurnContext, buttons):
         card = HeroCard(
             title="Continuar a PROD o RollBack?", text="", buttons=buttons
         )
@@ -487,6 +493,7 @@ class TeamsConversationBot(TeamsActivityHandler):
 
 
 # 3. CONFIRM POST TESTS DRS OK
+
 
     async def _send_card_post_tests_prod(self, turn_context: TurnContext, isUpdate):
         buttons = [
@@ -511,16 +518,17 @@ class TeamsConversationBot(TeamsActivityHandler):
 
 # 4. FINISH DEPLOYMENT CARD
 
-    async def _send_card_FINISH(self, turn_context: TurnContext, isUpdate):
+
+    async def _send_card_finish(self, turn_context: TurnContext, isUpdate):
         buttons = [
             CardAction(
                 type=ActionTypes.im_back, title="Finalizar", text="Finalizar", value="DP-Finish"
             ),
         ]
 
-        await self._send_select_card_FINISH(turn_context, buttons)
+        await self._send_select_card_finish(turn_context, buttons)
 
-    async def _send_select_card_FINISH(self, turn_context: TurnContext, buttons):
+    async def _send_select_card_finish(self, turn_context: TurnContext, buttons):
         card = HeroCard(
             title="Finalizar deployment?", text="", buttons=buttons
         )
@@ -534,7 +542,7 @@ class TeamsConversationBot(TeamsActivityHandler):
 
 # a) se solicita confirmacion OK de las pruebas iniciales
 
-    async def _confirmPrevious(self, turn_context: TurnContext):
+    async def _confirm_previous(self, turn_context: TurnContext):
         userAllowed = await self._get_users_allowed(turn_context)
         mention = Mention(
             mentioned=turn_context.activity.from_property,
@@ -547,13 +555,12 @@ class TeamsConversationBot(TeamsActivityHandler):
         reply_activity_initial_tests.entities = [
             Mention().deserialize(mention.serialize())]
         await turn_context.send_activity(reply_activity_initial_tests)
-        await self._send_card_confirm_TInitial_ok(turn_context, False)
+        await self._send_card_confirm_test_initial_ok(turn_context, False)
 
 
 # b) se confirma al streamer que puede proceder con el deploy de la CRQ ingresada
 
-
-    async def _confirmDeploy(self, turn_context: TurnContext):
+    async def _confirm_deploy(self, turn_context: TurnContext):
         userAllowed = await self._get_users_allowed(turn_context)
         mention = Mention(
             mentioned=turn_context.activity.from_property,
@@ -570,7 +577,7 @@ class TeamsConversationBot(TeamsActivityHandler):
 
 # c) se confirma el inicio de deploy en DRS
 
-    async def _confirmDRS(self, turn_context: TurnContext):
+    async def _confirm_drs(self, turn_context: TurnContext):
         userAllowed = await self._get_users_allowed(turn_context)
         mention = Mention(
             mentioned=turn_context.activity.from_property,
@@ -587,8 +594,7 @@ class TeamsConversationBot(TeamsActivityHandler):
 
 # e) se sollicita confirmacion a control de red que todo este OK en DRS
 
-
-    async def _ask_control_confirmTests(self, turn_context: TurnContext):
+    async def _ask_control_confirm_tests(self, turn_context: TurnContext):
         userAllowed = await self._get_users_allowed(turn_context)
         mention = Mention(
             mentioned=turn_context.activity.from_property,
@@ -604,7 +610,7 @@ class TeamsConversationBot(TeamsActivityHandler):
 
 # f) se envia confirmacion de todo OK al streamer
 
-    async def _communicate_control_postTests_OK(self, turn_context: TurnContext):
+    async def _communicate_control_post_tests_ok(self, turn_context: TurnContext):
         userAllowed = await self._get_users_allowed(turn_context)
         mention = Mention(
             mentioned=turn_context.activity.from_property,
@@ -619,7 +625,7 @@ class TeamsConversationBot(TeamsActivityHandler):
         await turn_context.send_activity(reply_activity_confirm_TESTS_post)
 
 # consultar a sistemas si se puede pasar a produccion
-    async def _ask_PROD(self, turn_context: TurnContext):
+    async def _ask_prod(self, turn_context: TurnContext):
         userAllowed = await self._get_users_allowed(turn_context)
         mention = Mention(
             mentioned=turn_context.activity.from_property,
@@ -632,11 +638,11 @@ class TeamsConversationBot(TeamsActivityHandler):
         reply_activity_confirm_prod_proceed.entities = [
             Mention().deserialize(mention.serialize())]
         await turn_context.send_activity(reply_activity_confirm_prod_proceed)
-        await self._send_card_PROD_RB(turn_context, False)
+        await self._send_card_prod_rb(turn_context, False)
 
 # g) se confirma paso a produccion
 
-    async def _confirmProd(self, turn_context: TurnContext):
+    async def _confirm_prod(self, turn_context: TurnContext):
         userAllowed = await self._get_users_allowed(turn_context)
         mention = Mention(
             mentioned=turn_context.activity.from_property,
@@ -652,7 +658,7 @@ class TeamsConversationBot(TeamsActivityHandler):
 
 # e) se sollicita confirmacion a control de red que todo este OK en DRS
 
-    async def _ask_control_confirmProdTests(self, turn_context: TurnContext):
+    async def _ask_control_confirm_prod_tests(self, turn_context: TurnContext):
         userAllowed = await self._get_users_allowed(turn_context)
         mention = Mention(
             mentioned=turn_context.activity.from_property,
@@ -668,7 +674,7 @@ class TeamsConversationBot(TeamsActivityHandler):
 
 # f) se envia confirmacion de roll back al streamer
 
-    async def _confirmRollback(self, turn_context: TurnContext):
+    async def _confirm_rollback(self, turn_context: TurnContext):
         userAllowed = await self._get_users_allowed(turn_context)
         mention = Mention(
             mentioned=turn_context.activity.from_property,
@@ -684,7 +690,7 @@ class TeamsConversationBot(TeamsActivityHandler):
 
 # g) se envia confirmacion cierre de deployment
 
-    async def _confirmFinish(self, turn_context: TurnContext):
+    async def _confirm_finish(self, turn_context: TurnContext):
         userAllowed = await self._get_users_allowed(turn_context)
         mention = Mention(
             mentioned=turn_context.activity.from_property,
@@ -700,7 +706,6 @@ class TeamsConversationBot(TeamsActivityHandler):
 
 
 # g) se envia confirmacion cierre de deployment
-
 
     async def _communicate_finish_deploy_streamer(self, turn_context: TurnContext):
         userAllowed = await self._get_users_allowed(turn_context)
@@ -723,8 +728,7 @@ class TeamsConversationBot(TeamsActivityHandler):
 
 # 1. MESSAGE ALL MEMBERS JENKINS JOB STATUS
 
-
-    async def _message_all_members_Jenkins_Job(self, turn_context: TurnContext):
+    async def _message_all_members_jenkins_job(self, turn_context: TurnContext):
         team_members = await self._get_paged_members(turn_context)
         for member in team_members:
             conversation_reference = TurnContext.get_conversation_reference(
@@ -748,14 +752,14 @@ class TeamsConversationBot(TeamsActivityHandler):
             async def send_message(tc2: TurnContext):
                 return await tc2.send_activity(
                     f"{member.name}. Se termino el Jenkins Job, verifique estado en canal."
-                )  
+                )  # pylint: disable = cell-var-from-loop
             await turn_context.adapter.create_conversation(
                 conversation_reference, get_ref, conversation_parameters
             )
 
 # 2. MESSAGE ALL MEMBERS TESTS
 
-    async def _message_all_members_TESTS(self, turn_context: TurnContext):
+    async def _message_all_members_tests(self, turn_context: TurnContext):
         team_members = await self._get_paged_members(turn_context)
         # aqui deberia ir el nombre de la persona que envío el CRQ
         # pendiente ver con Facu como sería
@@ -788,7 +792,7 @@ class TeamsConversationBot(TeamsActivityHandler):
 
 # 3. MESSAGE ALL MEMBERS DRS
 
-    async def _message_all_members_Prod(self, turn_context: TurnContext):
+    async def _message_all_members_prod(self, turn_context: TurnContext):
         team_members = await self._get_paged_members(turn_context)
         # aqui deberia ir el nombre de la persona que envío el CRQ
         # pendiente ver con Facu como sería
@@ -814,14 +818,14 @@ class TeamsConversationBot(TeamsActivityHandler):
             async def send_message(tc2: TurnContext):
                 return await tc2.send_activity(
                     f"{member.name}. Inicio de deploy en PROD."
-                )  
+                )  # pylint: disable = cell-var-from-loop
             await turn_context.adapter.create_conversation(
                 conversation_reference, get_ref, conversation_parameters
             )
 
 # 4. MESSAGE ALL MEMBERS ROLLBACK
 
-    async def _message_all_members_ROLLBACK(self, turn_context: TurnContext):
+    async def _message_all_members_rollback(self, turn_context: TurnContext):
         team_members = await self._get_paged_members(turn_context)
         # aqui deberia ir el nombre de la persona que envío el CRQ
         # pendiente ver con Facu como sería
@@ -847,14 +851,14 @@ class TeamsConversationBot(TeamsActivityHandler):
             async def send_message(tc2: TurnContext):
                 return await tc2.send_activity(
                     f"{member.name}. Inicio de Rollback."
-                ) 
+                )  # pylint: disable = cell-var-from-loop
             await turn_context.adapter.create_conversation(
                 conversation_reference, get_ref, conversation_parameters
             )
 
 # 5. MESSAGE ALL MEMBERS FINISH
 
-    async def _message_all_members_FINISH(self, turn_context: TurnContext):
+    async def _message_all_members_finish(self, turn_context: TurnContext):
         team_members = await self._get_paged_members(turn_context)
         # aqui deberia ir el nombre de la persona que envío el CRQ
         # pendiente ver con Facu como sería
@@ -880,7 +884,7 @@ class TeamsConversationBot(TeamsActivityHandler):
             async def send_message(tc2: TurnContext):
                 return await tc2.send_activity(
                     f"{member.name}. Finaliza deploy."
-                ) 
+                )  # pylint: disable = cell-var-from-loop
             await turn_context.adapter.create_conversation(
                 conversation_reference, get_ref, conversation_parameters
             )
